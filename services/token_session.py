@@ -1,0 +1,36 @@
+from core.repository import AbstractRepository
+from schemas.token_session import AddTokenSessionSchema, TokenSessionSchema, UpdateTokenSessionSchema
+
+
+class TokenSessionService:
+
+    repository: AbstractRepository
+
+    def __init__(self, repository: AbstractRepository):
+        self.repository = repository()
+
+    async def add_one(self, item: AddTokenSessionSchema):
+        return await self.repository.add_one(item.model_dump())
+    
+    async def add_many(self, items: list[AddTokenSessionSchema]):
+        return await self.repository.add_many([item.model_dump() for item in items])
+    
+    async def find_by_id(self, item_id: str):
+        result = await self.repository.find_one_or_none(filters=[self.repository.model.id == item_id])
+        return result
+    
+    async def find_all(self):
+        result = await self.repository.find_all()
+        return result
+    
+    async def update(self, item_id: str, item: UpdateTokenSessionSchema):
+        result = await self.repository.update(item.model_dump(), [self.repository.model.id == item_id])
+        return result
+    
+    async def update_all(self, items: list[UpdateTokenSessionSchema]):
+        result = await self.repository.update_all([item.model_dump() for item in items])
+        return result
+    
+    async def delete_by_id(self, item_id: str):
+        result = await self.repository.delete([self.repository.model.id==item_id])
+        return result
