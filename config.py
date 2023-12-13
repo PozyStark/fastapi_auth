@@ -21,6 +21,8 @@ DB_PASSWORD = os.environ.get('POSTGRES_PASSWORD')
 # Настроки секретного ключа и алгоритма шифрования для токена
 SECRET_KEY = os.environ.get('SECRET_KEY')
 ALGORITHM = os.environ.get('ALGORITHM')
+SCHEMES = ['bcrypt']
+DEPRECATED = 'auto'
 
 # Настроки времени жизни токена
 ACCESS_TOKEN_EXPIRE_MINUTES = 360
