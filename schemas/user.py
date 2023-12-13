@@ -29,9 +29,6 @@ class AddUserSchema(BaseModel):
     age: int | None = None
     avatar: str | None = None
 
-class BG(BaseModel):
-    sosok_size: int
-
 
 class UpdateUserSchema(BaseModel):
     username: str = ...
