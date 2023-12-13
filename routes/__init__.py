@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from .auth import auth_routers
 from .user import user_routers
 from .user_role import user_role_routers
 from .user_permission import user_permission_routers
@@ -13,7 +14,7 @@ from .group_permission import group_permission_routers
 
 fastapi_auth_routes = APIRouter()
 
-
+fastapi_auth_routes.include_router(auth_routers)
 fastapi_auth_routes.include_router(user_routers)
 fastapi_auth_routes.include_router(user_role_routers)
 fastapi_auth_routes.include_router(user_permission_routers)
