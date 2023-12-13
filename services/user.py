@@ -43,6 +43,10 @@ class UserService:
         result = await self.repository.find_one_or_none(filters=[self.repository.model.id == item_id])
         return result
     
+    async def find_by_username(self, username: str) -> User | None:
+        result = await self.repository.find_by_username(username)
+        return result
+    
     async def find_all(self):
         result = await self.repository.find_all()
         return result

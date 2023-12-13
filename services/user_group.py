@@ -1,5 +1,5 @@
 from core.repository import AbstractRepository
-from schemas.user_group import AddUserGroupSchema, UpdateUserGroupSchema, UserGroupSchema
+from schemas import AddUserGroupSchema, UpdateUserGroupSchema, UserGroupSchema
 
 
 class UserGroupService:

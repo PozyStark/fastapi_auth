@@ -1,6 +1,6 @@
 from core.repository import AbstractRepository
-from repositories.group import GroupRepository
-from schemas.group import AddGroupSchema, GroupSchema, UpdateGroupSchema
+from repositories import GroupRepository
+from schemas import AddGroupSchema, GroupSchema, UpdateGroupSchema
 
 
 class GroupService:

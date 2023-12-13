@@ -1,6 +1,6 @@
 from core.repository import AbstractRepository
-from repositories.permission import PermissionRepository
-from schemas.permission import AddPermissionSchema, PermissionSchema, UpdatePermissionSchema
+from repositories import PermissionRepository
+from schemas import AddPermissionSchema, UpdatePermissionSchema, PermissionSchema
 
 
 class PermissionService:

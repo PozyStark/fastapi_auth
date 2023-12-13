@@ -1,6 +1,6 @@
 from core.repository import AbstractRepository
-from repositories.role import RoleRepository
-from schemas.role import AddRoleSchema, RoleSchema, UpdateRoleSchema
+from repositories import RoleRepository
+from schemas import AddRoleSchema, RoleSchema, UpdateRoleSchema
 
 
 class RoleService:

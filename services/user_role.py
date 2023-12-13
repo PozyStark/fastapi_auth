@@ -1,6 +1,5 @@
 from core.repository import AbstractRepository
-from repositories.role_permission import RolePermission
-from schemas.user_role import AddUserRoleSchema, UpdateUserRoleSchema, UserRoleSchema
+from schemas import AddUserRoleSchema, UpdateUserRoleSchema, UserRoleSchema
 
 
 class UserRoleService:

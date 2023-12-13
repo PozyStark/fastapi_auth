@@ -1,6 +1,6 @@
+from uuid import uuid4
 from core.repository import AbstractRepository
-from schemas.token_session import AddTokenSessionSchema, TokenSessionSchema, UpdateTokenSessionSchema
-
+from schemas import AddTokenSessionSchema, TokenSessionSchema, UpdateTokenSessionSchema
 
 class TokenSessionService:
 
@@ -10,10 +10,17 @@ class TokenSessionService:
         self.repository = repository()
 
     async def add_one(self, item: AddTokenSessionSchema):
-        return await self.repository.add_one(item.model_dump())
+        item_dict = item.model_dump()
+        item_dict.update({'id': str(uuid4())})
+        return await self.repository.add_one(item_dict)
     
     async def add_many(self, items: list[AddTokenSessionSchema]):
-        return await self.repository.add_many([item.model_dump() for item in items])
+        item_list = list()
+        for item in items:
+            item_dict = item.model_dump()
+            item_dict.update({'id': str(uuid4())})
+            item_list.append(item_dict)
+        return await self.repository.add_many(item_list)
     
     async def find_by_id(self, item_id: str):
         result = await self.repository.find_one_or_none(filters=[self.repository.model.id == item_id])
