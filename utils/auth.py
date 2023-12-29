@@ -30,37 +30,35 @@ def password_verify(
 
 
 def jwt_token_decode(
-    jwt_token: str
-) -> dict | None:
+    jwt_token: str = ...,
+    auto_error: bool = True
+) -> dict | None | HTTPException:
+    if not jwt_token:
+        return None
     try:
-        decoded_token = jwt.decode(
+        token_payload = jwt.decode(
             jwt=jwt_token,
             key=SECRET_KEY,
             algorithms=[ALGORITHM]
         )
-        return decoded_token
+        token_headers = jwt.get_unverified_header(jwt_token)
+        return {'headers': token_headers, 'payload': token_payload}
     except DecodeError:
+        if auto_error:
+            raise HTTPException(401, 'decode error')
         return None
     except ExpiredSignatureError:
-        return None    
-
-
-def jwt_headers(
-    jwt_token: str
-) -> dict:
-    return jwt.get_unverified_header(jwt_token)
-
-
-def jwt_payload(
-    jwt_token: str
-) -> dict | None:
-    return jwt_token_decode(jwt_token)
+        if auto_error:
+            raise HTTPException(401, 'token expired')
+        return None
 
 
 def create_jwt_token(
     expire: datetime,
     headers: dict | None = None,
-    payload: dict | None = None
+    payload: dict | None = None,
+    key: str = SECRET_KEY,
+    algoritm: str = ALGORITHM
 ) -> str | None:
     if payload:
         payload_copy = payload.copy()
@@ -68,7 +66,7 @@ def create_jwt_token(
     token = jwt.encode(
         headers=headers,
         payload=payload_copy,
-        key=SECRET_KEY,
-        algorithm=ALGORITHM
+        key=key,
+        algorithm=algoritm
     )
     return token
