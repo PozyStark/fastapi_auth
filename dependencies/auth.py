@@ -1,18 +1,18 @@
-
 from enum import Enum
 from fastapi import Depends, HTTPException, Request
 from datetime import datetime, timedelta
-from typing import Annotated
+from typing import Annotated, Any
 from pydantic import BaseModel
-from dependencies import user_service, token_session_service, user_group_service, user_role_service
+from dependencies import user_service, token_session_service
 from config import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_MINURES
 from exceptions import UNAUTHORIZED_NOT_PERMITED, UNAUTHORIZED_TOKEN_NOT_VERIFYED, UNAUTHORIZED_NO_SUCH_TOKEN_ID
-from schemas import AuthinticationScheme, AccessToken, RefreshToken
-from schemas import AddTokenSessionSchema
-from services import UserService, TokenSessionService, UserRoleService, UserPermissionService, UserGroupService
-from utils import create_jwt_token, jwt_token_decode, jwt_headers, jwt_payload
-from permissions import BasePermission
-from core.request import AuthRequest
+from schemas import AuthinticationScheme, AddTokenSessionSchema, Token
+from services import UserService, TokenSessionService
+from utils import create_jwt_token, jwt_token_decode
+from interfaces import AbstractPermission
+from data import AuthRequest
+from core import IsAuthenticated, BasePermission, StrPermission
+
 
 async def auth_token_pair(
         authintication_scheme: AuthinticationScheme,
@@ -23,6 +23,7 @@ async def auth_token_pair(
     refresh_expire = datetime.utcnow() + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINURES)
 
     user = await user_service.find_by_username(authintication_scheme.username)
+
     if user:
         token = await token_session_service.add_one(AddTokenSessionSchema(user_id=user.id, expire=refresh_expire))
         headers = {
@@ -48,241 +49,126 @@ async def auth_token_pair(
 class SearchMode(Enum):
     HEADER_MODE = 0
     COOKIE_MODE = 1
-    
-"""
-    *Класс зависимость для проверки аутентификации пользователя
-    *Для проверки доступов пользователя
-"""
+
+
+class TokenType(Enum):
+    ACCESS_TOKEN = 0
+    REFRESH_TOKEN = 1
+
+
 class BearerAuth:
 
     HEADER_MODE: int = SearchMode.HEADER_MODE
     COOKIE_MODE: int = SearchMode.COOKIE_MODE
 
-    token_type: AccessToken | RefreshToken
+    ACCESS_TOKEN: int = TokenType.ACCESS_TOKEN
+    REFRESH_TOKEN: int = TokenType.REFRESH_TOKEN
+
+    token_type: TokenType
     search_mode: SearchMode
-    verify_token_signature: bool
-    verify_token_id: bool
-    required_permission: list[BasePermission | str]
-    required_roles: list[BasePermission | str]
-    required_groups: list[BasePermission | str]
+    # verify_token_signature: bool
+    # verify_token_id: bool
+    required_permissions: list[AbstractPermission]
 
     def __init__(
         self,
-        token_type: AccessToken | RefreshToken,
-        verify_token_signature: bool = True,
-        verify_token_id: bool = True,
+        token_type: TokenType = ACCESS_TOKEN,
+        # verify_token_signature: bool = True,
+        # verify_token_id: bool = True,
         search_mode: SearchMode = COOKIE_MODE,
         auto_error: bool = True,
-        required_permission: list[BasePermission | str] = None,
-        required_roles: list[BasePermission | str] = None,
-        required_groups: list[BasePermission | str] = None
+        required_permissions: list[AbstractPermission] = list(),
     ):
         self.token_type = token_type
         self.auto_error = auto_error
         self.search_mode = search_mode
-        self.verify_token_signature = verify_token_signature
-        self.verify_token_id = verify_token_id
-        self.required_permission = required_permission
-        self.required_roles = required_roles
-        self.required_groups = required_groups
+        # self.verify_token_signature = verify_token_signature
+        # self.verify_token_id = verify_token_id
+        self.required_permissions = required_permissions
 
-    @staticmethod
-    async def check_permission(
-        permission: BasePermission | str,
-        auth_request: AuthRequest
-    ) -> bool | ValueError:
-        user_permissions = auth_request.context.get('user_permissions', None)
-        if not user_permissions:
-            return False
-        if isinstance(permission, str):
-            if permission in user_permissions:
-                return True
-            return False
-        elif issubclass(permission, BasePermission):
-            return await permission.has_permission(auth_request, async_session, False)
-        raise ValueError(permission)
-
-
-    def __get_token(
+    def __get_token(self, request: Request) -> str | None:
+        request_dict: dict = dict()
+        if self.search_mode == SearchMode.COOKIE_MODE:
+            request_dict = request.cookies
+        if self.search_mode == SearchMode.HEADER_MODE:
+            request_dict = request.headers
+        if self.token_type == TokenType.ACCESS_TOKEN:
+            return request_dict.get('access_token')
+        if self.token_type == TokenType.REFRESH_TOKEN:
+            return request_dict.get('refresh_token')
+        
+    def __has_permissions(
         self,
-        token: AccessToken | RefreshToken | None = None
-    ) -> str | None:
-        if isinstance(token, AccessToken):
-            return token.access_token
-        if isinstance(token, RefreshToken):
-            return token.refresh_token
-
-        
-    async def __verify_token_id(
-        self,
-        service: Annotated[TokenSessionService, Depends(token_session_service)],
-        token: str
-    ) -> bool:
-        
-        token_id = jwt_headers(token).get('token_id')
-        
-        token_in_base = await service.find_by_id(token_id)
-
-        if not token_in_base:
-            return False
-        
-        return True
-    
-
-    async def __is_authinticated(self, token: str) -> bool | HTTPException:
-
-        if not token:
-            return False
-
-        if not jwt_token_decode(token) and self.verify_token_signature:
-            if self.auto_error:
-                raise UNAUTHORIZED_TOKEN_NOT_VERIFYED
-            else:
+        auth_request: AuthRequest,
+    ) -> bool | HTTPException:
+        auth_data = dict(auth_request=auth_request, auto_error=self.auto_error)
+        for perm in self.required_permissions:
+            if not perm(**auth_data).has_permission():
                 return False
-        
-        if not await self.__verify_token_id(token) and self.verify_token_id:
-            if self.auto_error:
-                raise UNAUTHORIZED_NO_SUCH_TOKEN_ID
-            else:
-                return False
-        
         return True
 
-
-    async def __get_user_permissions(
+    async def __get_auth_request(
         self,
-        service: Annotated[UserService, Depends(user_service)],
-        token: str
-    ) -> list[BaseModel]:
-        if not token or not self.auth_permissions.required_permissions:
-            return list()
-        user_id = jwt_token_decode(token).get('user_id')
-        user_permissions = await service.find_user_permissions_by_id(user_id)
-        return user_permissions
-    
+        request: Request,
+        user_service: UserService,
+        token_session_service: TokenSessionService
+    ) -> AuthRequest:
+        
+        token = self.__get_token(request)
 
-    async def __get_user_roles(
-        self,
-        service: Annotated[UserRoleService, Depends(user_role_service)],
-        token: str
-    ) -> list[BaseModel] | None:
-        if not token or not self.auth_permissions.required_roles:
-            return list()
-        user_id = jwt_token_decode(token).get('user_id')
-        user_roles = await service.find_user_role_by_id(user_id)
-        return user_roles
-    
+        auth_request = AuthRequest(
+            headers=request.headers,
+            cookies=request.cookies,
+            token=token
+        )
 
-    async def __get_user_groups(
-        self,
-        service: Annotated[UserGroupService, Depends(user_group_service)],
-        token: str
-    ) -> list[BaseModel] | None:
-        if not token or not self.auth_permissions.required_groups:
-            return list()
-        user_id = jwt_token_decode(token).get('user_id')
-        user_groups = await service.find_user_group_by_id(user_id)
-        return user_groups
-    
+        decoded_token = jwt_token_decode(token, self.auto_error)
 
-    def __get_user_id(self, token: str):
-        if not token:
-            return None
-        decoded_token = jwt_token_decode(token)
-        if not decoded_token:
-            return None
-        return decoded_token.get('user_id')
-    
-    
-    async def __get_auth_request(self, token: str, request: Request) -> AuthRequest:
+        if decoded_token:
+            token_headers: dict = decoded_token.get('headers')
+            token_payload: dict = decoded_token.get('payload')
 
-        is_authinticated = await self.__is_authinticated(token)
+            auth_request.token_id = token_headers.get('token_id')
+            auth_request.user_id = token_payload.get('user_id')
 
-        auth_request = AuthRequest(request)
-        auth_request.set_is_authinticated(is_authinticated)
-        auth_request.set_token(token)
+            token_id = token_headers.get('token_id')
+            user_id = token_payload.get('user_id')
 
-        if is_authinticated:
+            token_exist = await token_session_service.find_by_id(token_id)
 
-            user_id = self.__get_user_id(token)
-
-            user_permissions = await self.__get_user_permissions(token)
+            if self.auto_error and not token_exist:
+                raise HTTPException(401, "token not exist") # *
             
-            user_roles = await self.__get_user_roles(token)
+            if token_exist:
+                auth_request.is_authinticated = True
 
-            user_groups = await self.__get_user_groups(token)
+                user = await user_service.find_by_id(user_id)
 
-            auth_request.set_user_id(user_id)
-            auth_request.update_context(
-                {
-                    'user_permissions': [permission._asdict().get('codename') for permission in user_permissions],
-                    'user_roles': [role._asdict().get('name') for role in user_roles],
-                    'user_groups': [group._asdict().get('name') for group in user_groups]
-                }
-            )
+                if self.auto_error and not user:
+                    raise HTTPException(401, "No such user") # *
+
+                roles = await user_service.find_user_roles_by_id(user_id)
+                groups = await user_service.find_user_groups_by_id(user_id)
+                user_permissions = await user_service.find_user_permissions_by_id(user_id)
+
+                auth_request.user_permissions = user_permissions
+                auth_request.is_superuser = user.is_superuser
+                auth_request.user_groups = groups
+                auth_request.user_roles = roles
 
         return auth_request
-
     
-    async def find_require(
-            self,
-            auth_request: AuthRequest,
-            list_requires: list,
-            require_dict: str
-    ) -> bool | HTTPException:
-        
-        for require in list_requires:
-            if isinstance(require, str):
-                if require not in auth_request.context.get(require_dict, list()):
-                    if self.auto_error:
-                        raise UNAUTHORIZED_NOT_PERMITED
-                    return False
-
-            elif issubclass(require, BasePermission):
-                if not await require.has_permission(auth_request, async_session, self.auto_error):
-                    return False
-        return True
-
-
-    async def check_permissions(self, auth_request: AuthRequest) -> bool | HTTPException:
-        user_permisions: bool = await self.find_require(
-            auth_request,
-            self.required_permission,
-            'user_permissions'
-        )
-        user_roles: bool = await self.find_require(
-            auth_request,
-            self.required_roles,
-            'user_roles'
-        )
-        user_groups: bool = await self.find_require(
-            auth_request,
-            self.required_groups,
-            'user_groups'
-        )
-
-        return user_permisions and user_roles and user_groups
-
-
     async def __call__(
         self,
-        request: Request 
+        request: Request,
+        user_service: Annotated[UserService, Depends(user_service)],
+        token_session_service: Annotated[TokenSessionService, Depends(token_session_service)]
     ) -> AuthRequest | HTTPException:
-        
-        if self.search_mode == SearchMode.COOKIE_MODE:
-            auth_token = self.token_type(**request.cookies)
-        if self.search_mode == SearchMode.HEADER_MODE:
-            auth_token = self.token_type(**request.headers)
 
-        token = self.__get_token(auth_token)
-        print(f'call_token: {token}')
+        auth_request = await self.__get_auth_request(request, user_service, token_session_service)
 
-        auth_request = await self.__get_auth_request(token, request)
-        print(f'call_auth_request: {auth_request}')
+        has_permissions = self.__has_permissions(auth_request)
 
-        permissions = await self.check_permissions(auth_request)
-        auth_request.update_context({'has_permissions': permissions})
+        print(f'has_permissions-{has_permissions}')
 
         return auth_request
-
-
