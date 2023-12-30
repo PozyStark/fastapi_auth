@@ -1,5 +1,6 @@
 runvenv.ps1
 /alembic/versions
+pom.yml
 .env
 venv
 __pycache__
