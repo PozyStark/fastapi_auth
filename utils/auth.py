@@ -1,18 +1,9 @@
 from config import SECRET_KEY, ALGORITHM, SCHEMES, DEPRECATED
-from dependencies import user_service, token_session_service
-from datetime import datetime, timedelta
+from datetime import datetime
 from fastapi import HTTPException
 from jwt import DecodeError, ExpiredSignatureError
 from passlib.context import CryptContext
-from sqlalchemy.ext.asyncio import AsyncSession
-from models import User
-# from services import get_user_by_username
-from exceptions import TOKEN_DECODE_ERROR
 import jwt
-from typing import Annotated
-from fastapi import Depends
-from services import UserService, TokenSessionService
-from config import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_MINURES
 
 
 ENCRYPT = CryptContext(schemes=SCHEMES, deprecated=DEPRECATED)
