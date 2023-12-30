@@ -2,10 +2,14 @@ from fastapi import APIRouter, Response
 from fastapi import Depends
 from typing import Annotated
 
-from schemas.auth import AuthinticationScheme
 from dependencies import auth_token_pair
 
 from exceptions import UNAUTHORIZED_NO_SUCH_USER
+
+from dependencies import AuthRequest
+from dependencies import BearerAuth
+from core import IsAuthenticated, IsSuperUser, BasePermission, StrPermission, StrRole, StrGroup
+from utils import jwt_token_decode
 
 auth_routers = APIRouter()
 
@@ -51,23 +55,22 @@ async def token(
         return {'access_token': access_token, 'refresh_token': refresh_token}
 
 
-# @auth_routers.get('/token-verify')
-# def token_verify(
-#     auth_request: Annotated[
-#         AuthRequest,
-#         Depends(
-#             BearerAuth(
-#                 token_type=AccessToken,
-#                 verify_token_signature=False,
-#                 search_mode=BearerAuth.HEADER_MODE,
-#                 verify_token_id=False
-#             )
-#         )
-#     ]
-# ):
-#     if jwt_token_decode(jwt_token=auth_request.token):
-#         return {'verify': True}
-#     return {'verify': False}
+@auth_routers.get('/token-verify')
+def token_verify(
+    auth_request: Annotated[
+        AuthRequest,
+        Depends(
+            BearerAuth(
+                token_type=BearerAuth.ACCESS_TOKEN,
+                search_mode=BearerAuth.COOKIE_MODE,
+                auto_error=False
+            )
+        )
+    ]
+):
+    if jwt_token_decode(jwt_token=auth_request.token, auto_error=False):
+        return {'verify': True}
+    return {'verify': False}
 
 
 # refresh_permissions = AuthPermissions(
@@ -162,6 +165,37 @@ async def token(
 #         # 'moderator'
 #     ]
 # )
+
+@auth_routers.get("/protected-url")
+async def protected_url(
+    auth_request: Annotated[
+        AuthRequest,
+        Depends(
+            BearerAuth(
+                token_type=BearerAuth.ACCESS_TOKEN,
+                search_mode=BearerAuth.COOKIE_MODE,
+                auto_error=True,
+                required_permissions=[
+                    # IsAuthenticated,
+                    # IsSuperUser,
+                    StrPermission(required_permission='perm_2'),
+                    StrRole(required_role='string_role_2'),
+                    StrGroup(required_group='string_group_3')
+                ]
+            )
+        )
+    ]
+):
+    return {
+        'token': auth_request.token,
+        'token_id': auth_request.token_id,
+        'user_id': auth_request.user_id,
+        'is_authinticated': auth_request.is_authinticated,
+        'is_superuser': auth_request.is_superuser,
+        'user_permissions': auth_request.user_permissions,
+        'user_roles': auth_request.user_roles,
+        'user_groups': auth_request.user_groups
+    }
 
 
 # @auth_routers.get('/protected-url')

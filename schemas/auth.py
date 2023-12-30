@@ -1,12 +1,8 @@
 from pydantic import BaseModel, validator
 
 
-class AccessToken(BaseModel):
-    access_token: str | None = None
-
-
-class RefreshToken(BaseModel):
-    refresh_token: str | None = None
+class Token(BaseModel):
+    token: str | None = None
 
 
 class AuthinticationScheme(BaseModel):

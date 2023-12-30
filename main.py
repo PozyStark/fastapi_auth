@@ -1,7 +1,11 @@
 from fastapi import FastAPI
-from routes import auth_routers
+from old_routes import auth_routers
+from routes import fastapi_auth_routes
+from fastapi.routing import APIRouter
+from fastapi import Request
+from fastapi import Depends
+from fastapi.exceptions import HTTPException
 import uvicorn
-
 
 app = FastAPI()
 
@@ -10,7 +14,9 @@ app = FastAPI()
 # def start_up():
 #     pass
 
-app.include_router(auth_routers)
+# app.include_router(auth_routers)
+
+app.include_router(fastapi_auth_routes)
 
 
 # if __name__ == "__main__":

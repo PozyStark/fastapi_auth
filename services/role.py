@@ -1,4 +1,4 @@
-from core.repository import AbstractRepository
+from interfaces import AbstractRepository
 from repositories import RoleRepository
 from schemas import AddRoleSchema, RoleSchema, UpdateRoleSchema
 

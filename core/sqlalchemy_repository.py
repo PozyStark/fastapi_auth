@@ -1,8 +1,7 @@
 from typing import Any
 from sqlalchemy import delete, insert, select, update
-from core.repository import AbstractRepository
+from interfaces import AbstractRepository
 from databases import async_session
-from models import Role, Group, Permission, User, UserGroup, UserRole, UserPermission, RolePermission, GroupPermission, TokenSession
 
 
 class SqlAlchemyRepository(AbstractRepository):

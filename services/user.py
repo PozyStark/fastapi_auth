@@ -1,6 +1,6 @@
 from uuid import uuid4
 from datetime import datetime
-from core.repository import AbstractRepository
+from interfaces import AbstractRepository
 from repositories.user import User
 from schemas.user import AddUserSchema, UserSchema, UpdateUserSchema
 
@@ -39,7 +39,7 @@ class UserService:
             item_list.append(item_dict)
         return await self.repository.add_many(item_list)
     
-    async def find_by_id(self, item_id: int):
+    async def find_by_id(self, item_id: str) -> User | None:
         result = await self.repository.find_one_or_none(filters=[self.repository.model.id == item_id])
         return result
     
@@ -53,6 +53,14 @@ class UserService:
     
     async def find_user_permissions_by_id(self, user_id: str):
         result = await self.repository.find_user_permissions_by_id(user_id)
+        return result
+    
+    async def find_user_roles_by_id(self, user_id: str):
+        result = await self.repository.find_user_roles(user_id)
+        return result
+    
+    async def find_user_groups_by_id(self, user_id: str):
+        result = await self.repository.find_user_groups(user_id)
         return result
     
     async def update(self, item_id: str, item: UpdateUserSchema):

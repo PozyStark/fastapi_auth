@@ -1,5 +1,6 @@
 from uuid import uuid4
-from core.repository import AbstractRepository
+from models import TokenSession
+from interfaces import AbstractRepository
 from schemas import AddTokenSessionSchema, TokenSessionSchema, UpdateTokenSessionSchema
 
 class TokenSessionService:
@@ -9,7 +10,7 @@ class TokenSessionService:
     def __init__(self, repository: AbstractRepository):
         self.repository = repository()
 
-    async def add_one(self, item: AddTokenSessionSchema):
+    async def add_one(self, item: AddTokenSessionSchema, uuid: uuid4 = None) -> TokenSession | None:
         item_dict = item.model_dump()
         item_dict.update({'id': str(uuid4())})
         return await self.repository.add_one(item_dict)

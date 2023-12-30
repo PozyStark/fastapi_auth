@@ -1,11 +1,19 @@
-import time
-from time import sleep
+class A:
+    pass
 
+class B(A):
+    pass
 
-start = time.time()
+class C(B):
 
-sleep(5)
+    a: int
+    b: int
 
-end = time.time()
+    def __init__(self, **kwargs):
+        self.a = kwargs.get('a')
+        self.b = kwargs.get('b')
 
-print(end-start)
+c1 = C(a=5, b=6)
+
+c1.__dict__.update(b=9)
+print(c1.__dict__)

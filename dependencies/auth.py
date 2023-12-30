@@ -5,13 +5,14 @@ from typing import Annotated, Any
 from pydantic import BaseModel
 from dependencies import user_service, token_session_service
 from config import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_MINURES
-from exceptions import UNAUTHORIZED_NOT_PERMITED, UNAUTHORIZED_TOKEN_NOT_VERIFYED, UNAUTHORIZED_NO_SUCH_TOKEN_ID
+from exceptions import UNAUTHORIZED_NOT_PERMITED, UNAUTHORIZED_TOKEN_NOT_VERIFYED, UNAUTHORIZED_NO_SUCH_TOKEN_ID, UNAUTHORIZED_NO_SUCH_USER
 from schemas import AuthinticationScheme, AddTokenSessionSchema, Token
 from services import UserService, TokenSessionService
 from utils import create_jwt_token, jwt_token_decode
 from interfaces import AbstractPermission
 from data import AuthRequest
 from core import IsAuthenticated, BasePermission, StrPermission
+from models import User, TokenSession
 
 
 async def auth_token_pair(
@@ -66,15 +67,15 @@ class BearerAuth:
 
     token_type: TokenType
     search_mode: SearchMode
-    # verify_token_signature: bool
-    # verify_token_id: bool
+    verify_token_id: bool
+    verify_user_id: bool
     required_permissions: list[AbstractPermission]
 
     def __init__(
         self,
         token_type: TokenType = ACCESS_TOKEN,
-        # verify_token_signature: bool = True,
-        # verify_token_id: bool = True,
+        verify_token_id: bool = True,
+        verify_user_id: bool = True,
         search_mode: SearchMode = COOKIE_MODE,
         auto_error: bool = True,
         required_permissions: list[AbstractPermission] = list(),
@@ -82,8 +83,8 @@ class BearerAuth:
         self.token_type = token_type
         self.auto_error = auto_error
         self.search_mode = search_mode
-        # self.verify_token_signature = verify_token_signature
-        # self.verify_token_id = verify_token_id
+        self.verify_token_id = verify_token_id
+        self.verify_user_id = verify_user_id
         self.required_permissions = required_permissions
 
     def __get_token(self, request: Request) -> str | None:
@@ -106,6 +107,30 @@ class BearerAuth:
             if not perm(**auth_data).has_permission():
                 return False
         return True
+    
+    async def __verify_token_id(
+        self,
+        token_id: str,
+        token_session_service: TokenSessionService
+    ) -> bool:
+        if self.verify_token_id:
+            token_session = await token_session_service.find_by_id(token_id)
+            if token_session:
+                return True
+            return False
+        return True
+    
+    async def __verify_user_id(
+        self,
+        user_id: str,
+        user_service: UserService
+    ) -> bool:
+        if self.verify_user_id:
+            user = await user_service.find_by_id(user_id)
+            if user:
+                return True
+            return False
+        return True
 
     async def __get_auth_request(
         self,
@@ -125,6 +150,7 @@ class BearerAuth:
         decoded_token = jwt_token_decode(token, self.auto_error)
 
         if decoded_token:
+
             token_headers: dict = decoded_token.get('headers')
             token_payload: dict = decoded_token.get('payload')
 
@@ -134,18 +160,17 @@ class BearerAuth:
             token_id = token_headers.get('token_id')
             user_id = token_payload.get('user_id')
 
-            token_exist = await token_session_service.find_by_id(token_id)
+            token = await token_session_service.find_by_id(token_id)
+            user = await user_service.find_by_id(user_id)
 
-            if self.auto_error and not token_exist:
-                raise HTTPException(401, "token not exist") # *
-            
-            if token_exist:
+            if not token:
+                raise UNAUTHORIZED_NO_SUCH_TOKEN_ID
+            if not user:
+                raise UNAUTHORIZED_NO_SUCH_USER
+
+            if token and user:
+
                 auth_request.is_authinticated = True
-
-                user = await user_service.find_by_id(user_id)
-
-                if self.auto_error and not user:
-                    raise HTTPException(401, "No such user") # *
 
                 roles = await user_service.find_user_roles_by_id(user_id)
                 groups = await user_service.find_user_groups_by_id(user_id)

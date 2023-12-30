@@ -13,3 +13,4 @@ from .permission import permission_service
 from .token_session import token_session_service
 
 from .auth import auth_token_pair
+from .auth import BearerAuth, AuthRequest

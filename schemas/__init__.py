@@ -39,4 +39,4 @@ from .token_session import TokenSessionSchema
 from .token_session import AddTokenSessionSchema
 from .token_session import UpdateTokenSessionSchema
 
-from .auth import AuthinticationScheme, AccessToken, RefreshToken
+from .auth import AuthinticationScheme, Token
