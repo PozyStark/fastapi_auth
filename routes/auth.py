@@ -4,11 +4,11 @@ from typing import Annotated
 
 from dependencies import auth_token_pair
 
-from exceptions import UNAUTHORIZED_NO_SUCH_USER
+from exceptions.exceptions import UNAUTHORIZED_NO_SUCH_USER
 
 from dependencies import AuthRequest
 from dependencies import BearerAuth
-from core import IsAuthenticated, IsSuperUser, BasePermission, StrPermission, StrRole, StrGroup
+from permissions import IsAuthenticated, IsSuperUser, BasePermission, StrPermission, StrRole, StrGroup
 from utils import jwt_token_decode
 
 auth_routers = APIRouter()

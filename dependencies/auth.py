@@ -1,18 +1,15 @@
 from enum import Enum
 from fastapi import Depends, HTTPException, Request
 from datetime import datetime, timedelta
-from typing import Annotated, Any
-from pydantic import BaseModel
+from typing import Annotated
 from dependencies import user_service, token_session_service
 from config import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_MINURES
-from exceptions import UNAUTHORIZED_NOT_PERMITED, UNAUTHORIZED_TOKEN_NOT_VERIFYED, UNAUTHORIZED_NO_SUCH_TOKEN_ID, UNAUTHORIZED_NO_SUCH_USER
+from exceptions import UNAUTHORIZED_NO_SUCH_TOKEN_ID, UNAUTHORIZED_NO_SUCH_USER
 from schemas import AuthinticationScheme, AddTokenSessionSchema, Token
 from services import UserService, TokenSessionService
 from utils import create_jwt_token, jwt_token_decode
 from interfaces import AbstractPermission
 from data import AuthRequest
-from core import IsAuthenticated, BasePermission, StrPermission
-from models import User, TokenSession
 
 
 async def auth_token_pair(

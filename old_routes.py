@@ -8,7 +8,7 @@ from fastapi.routing import APIRouter
 from sqlalchemy import insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from dependencies import group_permission_service, group_service, role_permission_service, role_service, permission_service, user_group_service, user_permission_service, user_role_service, user_service
-from exceptions import UNAUTHORIZED_NO_SUCH_USER
+from exceptions.exceptions import UNAUTHORIZED_NO_SUCH_USER
 from models import Permission, Role, RolePermission
 # from permissions import AllowAny, IsAdminUser, IsAuthenticated, IsSuperUser
 from schemas.group import AddGroupSchema, GroupSchema, UpdateGroupSchema
