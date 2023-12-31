@@ -1,4 +1,4 @@
-from core.sqlalchemy_repository import SqlAlchemyRepository
+from repositories.sqlalchemy import SqlAlchemyRepository
 from models import TokenSession
 
 

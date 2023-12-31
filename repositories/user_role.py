@@ -1,5 +1,5 @@
 from select import select
-from core.sqlalchemy_repository import SqlAlchemyRepository
+from repositories.sqlalchemy import SqlAlchemyRepository
 from models import Role, User, UserPermission, Permission, UserRole
 from databases import async_session
 

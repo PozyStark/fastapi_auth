@@ -1,7 +1,7 @@
 from sqlalchemy import select, union, union_all
 from models import GroupPermission, Permission, RolePermission, User, UserGroup, UserPermission, UserRole, Role, Group
 from databases import async_session
-from core.sqlalchemy_repository import SqlAlchemyRepository
+from repositories.sqlalchemy import SqlAlchemyRepository
 
 
 class UserRepository(SqlAlchemyRepository):

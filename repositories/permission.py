@@ -1,5 +1,5 @@
 from models import Permission
-from core.sqlalchemy_repository import SqlAlchemyRepository
+from repositories.sqlalchemy import SqlAlchemyRepository
 
 
 class PermissionRepository(SqlAlchemyRepository):
