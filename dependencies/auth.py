@@ -104,30 +104,6 @@ class BearerAuth:
             if not perm(**auth_data).has_permission():
                 return False
         return True
-    
-    async def __verify_token_id(
-        self,
-        token_id: str,
-        token_session_service: TokenSessionService
-    ) -> bool:
-        if self.verify_token_id:
-            token_session = await token_session_service.find_by_id(token_id)
-            if token_session:
-                return True
-            return False
-        return True
-    
-    async def __verify_user_id(
-        self,
-        user_id: str,
-        user_service: UserService
-    ) -> bool:
-        if self.verify_user_id:
-            user = await user_service.find_by_id(user_id)
-            if user:
-                return True
-            return False
-        return True
 
     async def __get_auth_request(
         self,
@@ -177,6 +153,7 @@ class BearerAuth:
                 auth_request.is_superuser = user.is_superuser
                 auth_request.user_groups = groups
                 auth_request.user_roles = roles
+                auth_request.has_permissions = self.__has_permissions(auth_request)
 
         return auth_request
     
@@ -188,9 +165,5 @@ class BearerAuth:
     ) -> AuthRequest | HTTPException:
 
         auth_request = await self.__get_auth_request(request, user_service, token_session_service)
-
-        has_permissions = self.__has_permissions(auth_request)
-
-        print(f'has_permissions-{has_permissions}')
 
         return auth_request
