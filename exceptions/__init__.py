@@ -4,7 +4,6 @@ from .user import (
     USER_ALLREDY_EXIST
 )
 from .token import (
-    TOKEN_TYPE_EXCEPTION,
     TOKEN_ID_NOT_EXIST,
     TEMP_ID_NOT_EXIST,
     TOKEN_SESSION_NOT_ACTIVE,
