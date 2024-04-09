@@ -1,12 +1,6 @@
 from fastapi import HTTPException, status
 
 
-TOKEN_TYPE_EXCEPTION = HTTPException(
-    status_code=status.HTTP_400_BAD_REQUEST,
-    detail="invalid token_type",
-    headers={"WWW-Authenticate": "Bearer"}
-)
-
 TOKEN_ID_NOT_EXIST = HTTPException(
     status_code=status.HTTP_400_BAD_REQUEST,
     detail="token_id does not exist",

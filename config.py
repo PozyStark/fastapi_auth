@@ -20,7 +20,9 @@ DB_PASSWORD = os.environ.get('POSTGRES_PASSWORD')
 
 
 # Настроки секретного ключа и алгоритма шифрования для токена
-SECRET_KEY = os.environ.get('SECRET_KEY')
+ACCESS_SECRET_KEY = os.environ.get('ACCESS_SECRET_KEY')
+REFRESH_SECRET_KEY = os.environ.get('REFRESH_SECRET_KEY')
+
 ALGORITHM = os.environ.get('ALGORITHM')
 SCHEMES = ['bcrypt']
 DEPRECATED = 'auto'

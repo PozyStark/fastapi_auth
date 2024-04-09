@@ -1,4 +1,10 @@
-from config import SECRET_KEY, ALGORITHM, SCHEMES, DEPRECATED
+from config import (
+    ALGORITHM,
+    ACCESS_SECRET_KEY,
+    REFRESH_SECRET_KEY,
+    SCHEMES,
+    DEPRECATED
+)
 from datetime import datetime
 from fastapi import HTTPException
 from jwt import DecodeError, ExpiredSignatureError
@@ -22,6 +28,7 @@ def password_verify(
 
 def jwt_token_decode(
     jwt_token: str = ...,
+    secret_key: str = ...,
     raise_error: bool = True
 ) -> dict | HTTPException:
     if not jwt_token:
@@ -29,7 +36,7 @@ def jwt_token_decode(
     try:
         token_payload = jwt.decode(
             jwt=jwt_token,
-            key=SECRET_KEY,
+            key=secret_key,
             algorithms=[ALGORITHM]
         )
         token_headers = jwt.get_unverified_header(jwt_token)
@@ -45,11 +52,11 @@ def jwt_token_decode(
 
 
 def create_jwt_token(
+    key: str,
     expire: datetime,
+    algoritm: str = ALGORITHM,
     headers: dict | None = None,
     payload: dict | None = None,
-    key: str = SECRET_KEY,
-    algoritm: str = ALGORITHM
 ) -> str | None:
     if payload:
         payload_copy = payload.copy()

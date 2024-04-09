@@ -1,10 +1,15 @@
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, UTC
 from uuid import uuid4
 from fastapi import APIRouter, Request, Response
 from fastapi import Depends
 from typing import Annotated
-
-from config import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_MINURES, SAVE_IN_COOKIE
+from config import (
+    ACCESS_SECRET_KEY,
+    REFRESH_SECRET_KEY,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    REFRESH_TOKEN_EXPIRE_MINURES,
+    SAVE_IN_COOKIE
+)
 from enums import TokenType
 from dependencies.auth import AuthRequest, get_request_token, get_token
 from dependencies.token_session import token_session_service
@@ -45,20 +50,14 @@ async def token(
     user_service: Annotated[UserService, Depends(user_service)],
     token_session_service: Annotated[TokenSessionService, Depends(token_session_service)]
 ):
-    access_expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    refresh_expire = datetime.utcnow() + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINURES)
+    access_expire = datetime.now(UTC) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    refresh_expire = datetime.now(UTC) + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINURES)
 
     user = await user_service.find_by_username(authintication_scheme.username)
 
     if user and password_verify(authintication_scheme.password, user.password):
         token = await token_session_service.add_one(AddTokenSessionSchema(user_id=user.id, expire=refresh_expire))
-        headers_access = {
-            'token_type': TokenType.ACCESS_TOKEN.value,
-            'token_id': token.id,
-            'temp_id': token.temp_id
-        }
-        headers_refresh = {
-            'token_type': TokenType.REFRESH_TOKEN.value,
+        headers = {
             'token_id': token.id,
             'temp_id': token.temp_id
         }
@@ -66,13 +65,15 @@ async def token(
             'user_id': str(user.id)
         }
         access_token = create_jwt_token(
+            key=ACCESS_SECRET_KEY,
             expire=access_expire,
-            headers=headers_access,
+            headers=headers,
             payload=payload
         )
         refresh_token = create_jwt_token(
+            key=REFRESH_SECRET_KEY,
             expire=refresh_expire,
-            headers=headers_refresh,
+            headers=headers,
             payload=payload
         )
 
@@ -87,7 +88,7 @@ async def token(
                 value=refresh_token,
                 httponly=True
             )
-        await user_service.update(user.id, UpdateUserSchema(last_login=datetime.utcnow()), exclude_none=True)
+        await user_service.update(user.id, UpdateUserSchema(last_login=datetime.now(UTC)), exclude_none=True)
         return {'access_token': access_token, 'refresh_token': refresh_token}
     raise USER_NOT_EXIST
 
@@ -96,7 +97,11 @@ async def token(
 @auth_routers.get('/token-verify')
 def token_verify(request: Request):
     token = get_token(request)
-    if jwt_token_decode(jwt_token=token, raise_error=False):
+    if jwt_token_decode(
+        jwt_token=token,
+        secret_key=ACCESS_SECRET_KEY,
+        raise_error=False
+    ):
         return {'verify': True}
     return {'verify': False}
 
@@ -113,21 +118,15 @@ async def token_refresh(
     ],
     token_session_service: Annotated[TokenSessionService, Depends(token_session_service)]
 ):
-    access_expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    refresh_expire = datetime.utcnow() + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINURES)
+    access_expire = datetime.now(UTC) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    refresh_expire = datetime.now(UTC) + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINURES)
 
     updated_token = await token_session_service.update(
         auth_request.request_token.token_id,
         UpdateTokenSessionSchema(temp_id=str(uuid4()), expire=refresh_expire),
         exclude_none=True
     )
-    headers_access = {
-        'token_type': TokenType.ACCESS_TOKEN.value,
-        'token_id': auth_request.request_token.token_id,
-        'temp_id': updated_token.temp_id
-    }
-    headers_refresh = {
-        'token_type': TokenType.REFRESH_TOKEN.value,
+    headers = {
         'token_id': auth_request.request_token.token_id,
         'temp_id': updated_token.temp_id
     }
@@ -136,13 +135,15 @@ async def token_refresh(
     }
 
     access_token = create_jwt_token(
+        key=ACCESS_SECRET_KEY,
         expire=access_expire,
-        headers=headers_access,
+        headers=headers,
         payload=payload
     )
     refresh_token = create_jwt_token(
+        key=REFRESH_SECRET_KEY,
         expire=refresh_expire,
-        headers=headers_refresh,
+        headers=headers,
         payload=payload
     )
 

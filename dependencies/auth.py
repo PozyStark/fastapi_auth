@@ -1,9 +1,8 @@
 from fastapi import Depends, HTTPException, Request
 from typing import Annotated
 from dependencies import user_service, token_session_service
-from config import SEARCH_MODE
+from config import ACCESS_SECRET_KEY, REFRESH_SECRET_KEY, SEARCH_MODE
 from exceptions import (
-    TOKEN_TYPE_EXCEPTION,
     TOKEN_ID_NOT_EXIST,
     TEMP_ID_NOT_EXIST,
     TOKEN_SESSION_NOT_ACTIVE,
@@ -30,8 +29,16 @@ def get_token(
         return token
 
 
-def get_request_token(token: str, raise_error: bool = True) -> RequestToken:
-    decoded_token = jwt_token_decode(token, raise_error)
+def get_request_token(
+    token: str,
+    secret_key: str,
+    raise_error: bool = True
+) -> RequestToken:
+    decoded_token = jwt_token_decode(
+        jwt_token=token,
+        secret_key=secret_key,
+        raise_error=raise_error
+    )
 
     token_headers: dict = decoded_token.get('headers', dict())
     token_payload: dict = decoded_token.get('payload', dict())
@@ -70,9 +77,20 @@ class AuthRequest:
         request: Request
     ) -> str | None:
         return get_token(request, self.__search_mode,  self.__token_type)
+
+    def __get_request_token(
+        self,
+        token: str,
+        secret_key: str = ACCESS_SECRET_KEY
+    ) -> RequestToken:
+
+        if self.__token_type == TokenType.REFRESH_TOKEN:
+            secret_key = REFRESH_SECRET_KEY
         
-    def __get_request_token(self, token: str) -> RequestToken:
-        return get_request_token(token)
+        return get_request_token(
+            token=token,
+            secret_key=secret_key
+        )
 
     async def __validate_token_session(self, token_session_service: TokenSessionService) -> None:
         token_session = await token_session_service.find_by_id(self.request_token.token_id)
@@ -81,8 +99,6 @@ class AuthRequest:
                 raise TOKEN_ID_NOT_EXIST
             if not token_session.is_active:
                 raise TOKEN_SESSION_NOT_ACTIVE
-            if self.request_token.token_type != self.__token_type.value:
-                raise TOKEN_TYPE_EXCEPTION
             if self.request_token.temp_id != token_session.temp_id:
                 raise TEMP_ID_NOT_EXIST
     
@@ -165,8 +181,15 @@ class BearerAuth:
         token_session_service: TokenSessionService
     ) -> AuthRequest:
 
-        auth_request = AuthRequest(request, self.token_type, self.search_mode)
-        auth_request = await auth_request(token_session_service, user_service)
+        auth_request = AuthRequest(
+            request=request,
+            token_type=self.token_type,
+            search_mode=self.search_mode
+        )
+        auth_request = await auth_request(
+            token_session_service=token_session_service,
+            user_service=user_service
+        )
         self.__has_permission(auth_request)
 
         return auth_request
@@ -178,5 +201,9 @@ class BearerAuth:
         token_session_service: Annotated[TokenSessionService, Depends(token_session_service)]
     ) -> AuthRequest | HTTPException:
 
-        auth_request = await self.__get_auth_request(request, user_service, token_session_service)
+        auth_request = await self.__get_auth_request(
+            request=request,
+            user_service=user_service,
+            token_session_service=token_session_service
+        )
         return auth_request
