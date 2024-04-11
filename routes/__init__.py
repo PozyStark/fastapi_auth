@@ -15,13 +15,17 @@ from .group_permission import group_permission_routers
 fastapi_auth_routes = APIRouter()
 
 fastapi_auth_routes.include_router(auth_routers)
-fastapi_auth_routes.include_router(user_routers)
-fastapi_auth_routes.include_router(user_role_routers)
-fastapi_auth_routes.include_router(user_permission_routers)
-fastapi_auth_routes.include_router(user_group_routers)
-fastapi_auth_routes.include_router(role_routers)
-fastapi_auth_routes.include_router(role_permission_routers)
-fastapi_auth_routes.include_router(permission_routers)
-fastapi_auth_routes.include_router(group_routers)
-fastapi_auth_routes.include_router(group_permission_routers)
-fastapi_auth_routes.include_router(token_session_routers)
+
+"""
+Роуты для работы с админ панелью (в процессе создания)
+"""
+# fastapi_auth_routes.include_router(user_routers)
+# fastapi_auth_routes.include_router(user_role_routers)
+# fastapi_auth_routes.include_router(user_permission_routers)
+# fastapi_auth_routes.include_router(user_group_routers)
+# fastapi_auth_routes.include_router(role_routers)
+# fastapi_auth_routes.include_router(role_permission_routers)
+# fastapi_auth_routes.include_router(permission_routers)
+# fastapi_auth_routes.include_router(group_routers)
+# fastapi_auth_routes.include_router(group_permission_routers)
+# fastapi_auth_routes.include_router(token_session_routers)
