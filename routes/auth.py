@@ -170,7 +170,7 @@ async def logout(
     return {'detail': f'token_id: {request_token.token_id} logout success'}
 
 
-@auth_routers.post('/close-all-sessions')
+@auth_routers.post('/close-all-tokens')
 async def logout(
     request: Request,
     response: Response,
@@ -187,7 +187,7 @@ async def logout(
     return {'detail': f'all sessions for: {request_token.user_id} closed success'}
 
 
-@auth_routers.post('/close-all-sessions-exclude-current')
+@auth_routers.post('/close-all-tokens-exclude-current')
 async def logout(
     request: Request,
     response: Response,
