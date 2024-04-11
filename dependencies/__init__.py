@@ -12,4 +12,6 @@ from .group_permission import group_permission_service
 from .permission import permission_service
 from .token_session import token_session_service
 
-from .auth import BearerAuth, AuthRequest, get_token
+from .token_session import token_session_service
+
+from .auth import BearerAuth, AuthRequest, get_token, get_request_token
