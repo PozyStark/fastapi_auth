@@ -11,14 +11,22 @@ from config import (
     SAVE_IN_COOKIE
 )
 from enums import TokenType
-from dependencies.auth import AuthRequest, get_request_token, get_token
-from dependencies.token_session import token_session_service
-from dependencies.user import user_service
 
-from dependencies import AuthRequest
-from dependencies import BearerAuth
+from dependencies import (
+    AuthRequest,
+    BearerAuth,
+    get_request_token,
+    get_token,
+    token_session_service,
+    user_service
+)
 from exceptions import USER_NOT_EXIST, USER_ALLREDY_EXIST
-from schemas import AuthinticationScheme, RegistrationScheme, AddTokenSessionSchema, UpdateTokenSessionSchema
+from schemas import (
+    AuthinticationScheme,
+    RegistrationScheme,
+    AddTokenSessionSchema,
+    UpdateTokenSessionSchema
+)
 from schemas.user import AddUserSchema, UpdateUserSchema
 from services.token_session import TokenSessionService
 from services.user import UserService
@@ -206,28 +214,3 @@ async def logout(
     response.delete_cookie('access_token')
 
     return {'detail': f'all sessions for: {request_token.user_id} exclude current {request_token.token_id} closed success'}
-
-
-@auth_routers.get("/protected-url")
-async def protected_url(
-    auth_request: Annotated[
-        AuthRequest,
-        Depends(
-            BearerAuth(
-                required_permissions=[
-                    # IsAuthenticated,
-                    # IsSuperUser,
-                    # StrPermission(required_permission='perm_2'),
-                    # StrRole(required_role='string_role_2'),
-                    # StrGroup(required_group='string_group_3')
-                ]
-            )
-        )
-    ]
-):
-    return {
-        'user':auth_request.user
-        # 'request_token': auth_request.request_token.model_dump(),
-        # 'token_session': auth_request.token_session.model_dump(),
-        # 'user': auth_request.user.model_dump()
-    }
