@@ -54,23 +54,56 @@
 
 Так же с подробным описанием роутов и запросов можно ознакомиться в автоматичекой документации **Fastapi** при старте.
 
-### Применение:
+### Применение
 
 За проверку аутентификации отвечает класс **BearerAuth** чтобы указать что роут требует аутентификации достаточно указать данный класс в зависимости.
 
 ```
-from dependencies import BearerAuth
-from permissions import IsAuthenticated
+from dependencies import BearerAuth, AuthRequest
+
+@auth_routers.get("/protected-url")
+async def protected_url(
+    auth_request: Annotated[AuthRequest, Depends(BearerAuth())]
+):
+    return {"detail": "you are authinticated"}
+```
+
+На данном примере роут доступен всем пользователям и после получения информации с токена будет возвращен AuthRequest с информацией о пользователе.
+Так же это можно указать в явном виде.
+
+```
+from dependencies import BearerAuth, AuthRequest
+from permissions import AllowAny
 
 @auth_routers.get("/protected-url")
 async def protected_url(
     auth_request: Annotated[
-        AuthRequest,
-        Depends(
-            BearerAuth(
-                required_permissions=[IsAuthenticated]
-            )
-        )
+        AuthRequest, Depends(BearerAuth(required_permissions=[AllowAny]))
+    ]
+):
+    return {"detail": "you are authinticated"}
+```
+
+### Режим поиска токена
+Существует два режима поиска токена **BearerAuth.COOKIE_MODE** и **BearerAuth.HEADER_MODE**.
+Для этого в конструкторе определен параметр **search_mode**.
+Этот параметр возможно задать в конфигурации (будет применен для всех роутов по умолчанию) или задать его в индивидуальном порядке.
+
+```
+config.py
+
+# Настройки режима поиска токена
+SEARCH_MODE = SearchMode.COOKIE_MODE
+```
+
+```
+from dependencies import BearerAuth, AuthRequest
+from permissions import AllowAny
+
+@auth_routers.get("/protected-url")
+async def protected_url(
+    auth_request: Annotated[
+        AuthRequest, Depends(BearerAuth(search_mode=BearerAuth.COOKIE_MODE))
     ]
 ):
     return {"detail": "you are authinticated"}
