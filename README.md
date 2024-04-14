@@ -87,7 +87,7 @@ async def protected_url(
 ### Режим поиска токена
 Существует два режима поиска токена **BearerAuth.COOKIE_MODE** и **BearerAuth.HEADER_MODE**.
 Для этого в конструкторе определен параметр **search_mode**.
-Этот параметр возможно задать в конфигурации (будет применен для всех роутов по умолчанию) или задать его в индивидуальном порядке.
+Этот параметр возможно задать в конфигурации (будет применен для всех роутов по умолчанию) или задать его в индивидуальном порядке
 
 ```
 config.py
@@ -104,6 +104,78 @@ from permissions import AllowAny
 async def protected_url(
     auth_request: Annotated[
         AuthRequest, Depends(BearerAuth(search_mode=BearerAuth.COOKIE_MODE))
+    ]
+):
+    return {"detail": "you are authinticated"}
+```
+
+### Ограничение доступа
+Для ограничения доступа в классе **BearerAuth** определен список **required_permissions** в него необходимо добавить те доступы которые должны быть у пользователя. На примере ниже указан роут доступ к которому могут получить только те пользователи которые относятся к **SuperUser**
+
+```
+from dependencies import BearerAuth, AuthRequest
+from permissions import IsSuperUser
+
+@auth_routers.get("/protected-url")
+async def protected_url(
+    auth_request: Annotated[
+        AuthRequest, Depends(BearerAuth(required_permissions=[IsSuperUser]))
+    ]
+):
+    return {"detail": "you are authinticated"}
+```
+
+### Стандартные доступы
+В модуле **permissions.py** определены несколько стандартных доступов
+
+* **AllowAny** - доступ к роуту предоставляется всем пользователям
+* **IsAuthenticated** - доступ предоставляется только авторизованным пользователям
+* **IsSuperUser** - доступ предоставляется пользователям с правами супер пользователя
+* **IsAdminUser** - доступ предоставляется пользователям с правами администратора
+* **IsStuff** - доступ предоставляется пользователям с правами работы с админ панелью
+
+### Пользовательские доступы
+Для того чтобы указать не стандартный доступ в модуле **permissions.py** определены классы
+* **StrPermission** - для того чтобы указать необходимый пользовательский доступ
+* **StrRole** - для того чтобы указать необходимую роль
+* **StrGroup** - для того чтобы указать необходимую группу
+
+В примере доступ к роуту будет предоставлен только тем пользователям которые относятся к группе **site_creators**
+классы **StrPermission** и **StrRole** работают по аналогии
+```
+from dependencies import BearerAuth, AuthRequest
+from permissions import StrGroup
+
+@auth_routers.get("/protected-url")
+async def protected_url(
+    auth_request: Annotated[
+        AuthRequest, Depends(BearerAuth(required_permissions=[StrGroup('site_creators')]))
+    ]
+):
+    return {"detail": "you are authinticated"}
+```
+
+### Собственные классы доступов
+Есть возможность определить свой собственный класс унаслодовавшись от **BasePermission**
+
+```
+from dependencies import BearerAuth, AuthRequest
+from permissions import BasePermission
+
+class IsSiteCreator(BasePermission):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def has_permission(self) -> HTTPException:
+        super().has_permission()
+        if not 'site_creator' in self.auth_request.user.user_groups:
+            self.exception(f'Not allowed has no group site_creator')
+
+@auth_routers.get("/protected-url")
+async def protected_url(
+    auth_request: Annotated[
+        AuthRequest, Depends(BearerAuth(required_permissions=[IsSiteCreator]))
     ]
 ):
     return {"detail": "you are authinticated"}
