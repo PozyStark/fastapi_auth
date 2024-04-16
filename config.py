@@ -18,6 +18,7 @@ APP_PREFIX = 'fastapi_auth'
 # DB_USER = os.environ.get('POSTGRES_USER')
 # DB_PASSWORD = os.environ.get('POSTGRES_PASSWORD')
 # DB_URL = f'postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+
 DB_URL = 'sqlite+aiosqlite:///auth_data.sqlite'
 
 
