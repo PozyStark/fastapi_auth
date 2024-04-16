@@ -11,7 +11,6 @@ class AuthinticationScheme(BaseModel):
 
 class RequestToken(BaseModel):
     token: str | None = None
-    token_type: int | None = None
     token_id: str | None = None
     temp_id: str | None = None
     user_id: str | None = None
