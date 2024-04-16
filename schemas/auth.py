@@ -1,6 +1,6 @@
 from datetime import datetime
 from fastapi import HTTPException
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 
 class AuthinticationScheme(BaseModel):
@@ -48,6 +48,11 @@ class RegistrationScheme(BaseModel):
     middle_name: str | None = None
     last_name: str | None = None
 
+    @field_validator('password', 'confirm_password')
+    def password_none_validator(cls, value):
+        if value == '':
+            raise ValueError(f'Field can\'t be empty') 
+
     @field_validator('password')
     def password_symbol_validator(cls, value):
         pass_symbols = '!@#$%&*'
@@ -62,11 +67,13 @@ class RegistrationScheme(BaseModel):
             raise ValueError(f'Password is to short')
         return value
     
-    @field_validator('confirm_password')
-    def confirm_password_validator(cls, v, values):
-        if v != values.data['password']:
+    @model_validator(mode='after')
+    def password_verify_validator(self):
+        password = self.password
+        confirm_password = self.confirm_password
+        if password != confirm_password:
             raise ValueError(f'Password don\'t match')
-        return v  
+        return self
 
     # @validator('username')
     # def username_must_be_phone_number(cls, value):
