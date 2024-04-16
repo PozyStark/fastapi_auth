@@ -1,5 +1,0 @@
-runvenv.ps1
-/alembic
-.env
-venv
-__pycache__
